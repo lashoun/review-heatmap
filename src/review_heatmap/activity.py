@@ -44,7 +44,8 @@ from .libaddon.debug import isDebuggingOn, logger
 __all__ = ["ActivityReporter"]
 
 MAX_FORECAST_DAYS = 73000  # limit max forecast to 200 years as a preventative
-                           # measure vs bugged cards messing up the heatmap
+# measure vs bugged cards messing up the heatmap
+
 
 class ActivityReporter(object):
     def __init__(self, col, config, whole=False):
@@ -61,16 +62,15 @@ class ActivityReporter(object):
     #########################################################################
 
     def getData(self, limhist=None, limfcst=None, mode="reviews"):
-        
+
         if mode != "reviews":
             raise NotImplementedError("activity mode {} not implemented".format(mode))
-        
+
         time_limits = self._getTimeLimits(limhist, limfcst)
 
         review_activity = self._getActivity(**self._reviewsData(time_limits))
 
         return review_activity
-            
 
     # Activity calculations
     #########################################################################
@@ -88,10 +88,15 @@ class ActivityReporter(object):
 
         streak_max = streak_cur = streak_last = 0
         current = total = 0
+        multiplier = 0.5 ** (1 / 13)
+        ema = 0
 
         for idx, item in enumerate(history):
             current += 1
             timestamp, activity = item
+
+            previous_ema = ema
+            ema = multiplier * previous_ema + (1 - multiplier)
 
             try:
                 next_timestamp = history[idx + 1][0]
@@ -104,7 +109,13 @@ class ActivityReporter(object):
                     streak_max = current
                 current = 0
 
+                if next_timestamp is not None:
+                    for i in range(1, (next_timestamp - timestamp) // 86400):
+                        ema = multiplier * previous_ema
+
             total += activity
+
+        ema = round(ema * 100, 2)
 
         days_learned = idx + 1
 
@@ -145,6 +156,7 @@ class ActivityReporter(object):
                 "streak_max": {"type": "streak", "value": streak_max},
                 "streak_cur": {"type": "streak", "value": streak_cur},
                 "pct_days_active": {"type": "percentage", "value": pdays},
+                "ema": {"type": "percentage", "value": ema},
                 "activity_daily_avg": {"type": "cards", "value": avg_cur},
             },
         }
@@ -379,7 +391,7 @@ GROUP BY day ORDER BY day""".format(
         )
 
         res = self.col.db.all(cmd)
-        
+
         if isDebuggingOn():
             logger.debug(res)
 
