@@ -110,12 +110,11 @@ class ActivityReporter(object):
                 current = 0
 
                 if next_timestamp is not None:
-                    for i in range(1, (next_timestamp - timestamp) // 86400):
+                    for _ in range(1, (next_timestamp - timestamp) // 86400):
+                        previous_ema = ema
                         ema = multiplier * previous_ema
 
             total += activity
-
-        ema = round(ema * 100, 2)
 
         days_learned = idx + 1
 
@@ -123,6 +122,12 @@ class ActivityReporter(object):
         if history[-1][0] in (self.today, self.today - 86400):
             # last recorded date today or yesterday?
             streak_cur = streak_last
+        else:
+            for _ in range(0, (self.today - timestamp) // 86400):
+                previous_ema = ema
+                ema = multiplier * previous_ema
+
+        ema = round(ema * 100, 2)
 
         # Stats: average count on days with activity
         avg_cur = int(round(total / max(days_learned, 1)))
