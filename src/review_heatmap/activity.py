@@ -90,13 +90,16 @@ class ActivityReporter(object):
         current = total = 0
         multiplier = 0.5 ** (1 / 13)
         ema = 0
+        avg_cur = 0
 
         for idx, item in enumerate(history):
             current += 1
             timestamp, activity = item
 
             previous_ema = ema
+            previous_avg_cur = avg_cur
             ema = multiplier * previous_ema + (1 - multiplier)
+            avg_cur = multiplier * previous_avg_cur + (1 - multiplier) * activity
 
             try:
                 next_timestamp = history[idx + 1][0]
@@ -113,8 +116,10 @@ class ActivityReporter(object):
                     for _ in range(1, (next_timestamp - timestamp) // 86400):
                         previous_ema = ema
                         ema = multiplier * previous_ema
+                        previous_avg_cur = avg_cur
+                        avg_cur = multiplier * previous_avg_cur
 
-            total += activity
+            # total += activity
 
         days_learned = idx + 1
 
@@ -126,11 +131,14 @@ class ActivityReporter(object):
             for _ in range(0, (self.today - timestamp) // 86400):
                 previous_ema = ema
                 ema = multiplier * previous_ema
+                previous_avg_cur = avg_cur
+                avg_cur = multiplier * previous_avg_cur
 
         ema = round(ema * 100, 2)
+        avg_cur = round(avg_cur * 100, 2)
 
         # Stats: average count on days with activity
-        avg_cur = int(round(total / max(days_learned, 1)))
+        # avg_cur = int(round(total / max(days_learned, 1)))
 
         # Stats: percentage of days with activity
         #
