@@ -135,7 +135,7 @@ class ActivityReporter(object):
                 avg_cur = multiplier * previous_avg_cur
 
         ema = round(ema * 100, 2)
-        avg_cur = round(avg_cur * 100, 2)
+        avg_cur = round(avg_cur)
 
         # Stats: average count on days with activity
         # avg_cur = int(round(total / max(days_learned, 1)))
